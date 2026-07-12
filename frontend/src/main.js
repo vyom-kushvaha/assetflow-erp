@@ -1,3 +1,6 @@
+// Import API Configuration wrapper
+import './config/api.js';
+
 // Import Bootstrap CSS and JS bundles
 import 'bootstrap/dist/css/bootstrap.min.css';
 import 'bootstrap/dist/js/bootstrap.bundle.min.js';
