@@ -5,84 +5,116 @@ import 'bootstrap/dist/js/bootstrap.bundle.min.js';
 // Import Global Styles
 import './styles/main.css';
 
-// Import Custom Client-Side Router
+// Import Application Routing Modules
 import { Router } from './router/index.js';
+import { LoginPage } from './pages/login.js';
+import { DashboardPage } from './pages/dashboard.js';
+import { AssetsPage } from './pages/assets.js';
+import { AllocationPage } from './pages/allocation.js';
+import { OrganizationPage } from './pages/organization.js';
+import { BookingPage } from './pages/booking.js';
+import { MaintenancePage } from './pages/maintenance.js';
+import { AuditPage } from './pages/audit.js';
+import { ReportsPage } from './pages/reports.js';
+import { LogsPage } from './pages/logs.js';
 
-// Define Minimal Application Routes (Placeholder pages)
+// Register routes mapping templates and lifecycle event handlers
 const routes = [
   {
     path: '/',
-    render: () => `
-      <div class="d-flex flex-column min-vh-100 justify-content-center align-items-center text-center p-4">
-        <div class="card shadow-lg p-5 border-0 rounded-4" style="max-width: 600px; backdrop-filter: blur(10px); background: rgba(255, 255, 255, 0.9);">
-          <div class="mb-4">
-            <span class="fs-1">⚡</span>
-          </div>
-          <h1 class="display-5 fw-bold text-dark mb-3">AssetFlow ERP</h1>
-          <p class="text-muted mb-4 fs-5">
-            Welcome to the Enterprise Asset & Resource Management System. A production-ready, clean, modular boilerplate.
-          </p>
-          <div class="d-flex justify-content-center gap-3">
-            <a href="/dashboard" class="btn btn-primary btn-lg px-4 rounded-pill" data-link>Go to Dashboard</a>
-            <a href="https://github.com" target="_blank" class="btn btn-outline-secondary btn-lg px-4 rounded-pill">Documentation</a>
-          </div>
-        </div>
-      </div>
-    `
+    render: () => LoginPage.render(),
+    onMount: (router) => LoginPage.onMount(router)
   },
   {
     path: '/dashboard',
-    render: () => `
-      <div class="container py-5">
-        <div class="d-flex justify-content-between align-items-center mb-5 pb-3 border-bottom">
-          <div>
-            <h1 class="fw-bold text-dark m-0">Dashboard</h1>
-            <p class="text-muted m-0">AssetFlow Management Overview</p>
-          </div>
-          <a href="/" class="btn btn-outline-primary rounded-pill px-4" data-link>&larr; Back Home</a>
-        </div>
-        
-        <div class="row g-4">
-          <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4 rounded-4 bg-white h-100">
-              <h5 class="text-muted fw-semibold mb-2">Total Assets</h5>
-              <h2 class="fw-bold text-primary">--</h2>
-              <p class="text-xs text-muted mt-2 mb-0">System ready to register items</p>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4 rounded-4 bg-white h-100">
-              <h5 class="text-muted fw-semibold mb-2">Active Resources</h5>
-              <h2 class="fw-bold text-success">--</h2>
-              <p class="text-xs text-muted mt-2 mb-0">Team member associations</p>
-            </div>
-          </div>
-          <div class="col-md-4">
-            <div class="card border-0 shadow-sm p-4 rounded-4 bg-white h-100">
-              <h5 class="text-muted fw-semibold mb-2">System Status</h5>
-              <h2 class="fw-bold text-info">Online</h2>
-              <p class="text-xs text-muted mt-2 mb-0">Connected to local node</p>
-            </div>
-          </div>
-        </div>
-      </div>
-    `
+    render: () => DashboardPage.render(),
+    onMount: (router) => DashboardPage.onMount(router)
+  },
+  {
+    path: '/assets',
+    render: () => AssetsPage.render(),
+    onMount: (router) => AssetsPage.onMount(router)
+  },
+  {
+    path: '/allocation',
+    render: () => AllocationPage.render(),
+    onMount: (router) => AllocationPage.onMount(router)
+  },
+  {
+    path: '/organization',
+    render: () => OrganizationPage.render(),
+    onMount: (router) => OrganizationPage.onMount(router)
+  },
+  {
+    path: '/booking',
+    render: () => BookingPage.render(),
+    onMount: (router) => BookingPage.onMount(router)
+  },
+  {
+    path: '/maintenance',
+    render: () => MaintenancePage.render(),
+    onMount: (router) => MaintenancePage.onMount(router)
+  },
+  {
+    path: '/audit',
+    render: () => AuditPage.render(),
+    onMount: (router) => AuditPage.onMount(router)
+  },
+  {
+    path: '/reports',
+    render: () => ReportsPage.render(),
+    onMount: (router) => ReportsPage.onMount(router)
+  },
+  {
+    path: '/logs',
+    render: () => LogsPage.render(),
+    onMount: (router) => LogsPage.onMount(router)
   },
   {
     path: '*',
     render: () => `
       <div class="d-flex flex-column min-vh-100 justify-content-center align-items-center text-center p-4">
-        <h1 class="display-1 fw-bold text-muted">404</h1>
+        <h1 class="display-1 fw-bold text-muted headline-font">404</h1>
         <h2 class="fw-bold text-dark mb-3">Page Not Found</h2>
         <p class="text-muted mb-4">The page you are looking for does not exist or has been moved.</p>
-        <a href="/" class="btn btn-primary rounded-pill px-4" data-link>Back to Home</a>
+        <a href="/dashboard" class="btn btn-primary rounded-pill px-4" data-link>Back to Dashboard</a>
       </div>
-    `
+    `,
+    onMount: () => {}
   }
 ];
 
-// Initialize and Bind Router on DOM Load
-document.addEventListener('DOMContentLoaded', () => {
+// Verify authentication state and boot application router
+document.addEventListener('DOMContentLoaded', async () => {
   const router = new Router(routes);
-  router.handleRoute();
+
+  try {
+    const res = await fetch('/api/auth/me');
+    const currentPath = window.location.pathname;
+
+    if (res.ok) {
+      const data = await res.json();
+      localStorage.setItem('user', JSON.stringify(data.user));
+
+      // Authenticated users should not be allowed on the login route
+      if (currentPath === '/') {
+        router.navigateTo('/dashboard');
+      } else {
+        router.handleRoute();
+      }
+    } else {
+      localStorage.removeItem('user');
+
+      // Guest users should be forced to login route
+      if (currentPath !== '/') {
+        router.navigateTo('/');
+      } else {
+        router.handleRoute();
+      }
+    }
+  } catch (err) {
+    console.warn('Session verification failed, booting in offline mode:', err);
+    // Offline mode: proceed with standard route matching
+    router.handleRoute();
+  }
 });

@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const session = require('express-session');
+const authRoutes = require('./routes/authRoutes');
 
 const app = express();
 
@@ -24,8 +26,23 @@ app.use(cors({
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// Session Configuration Middleware
+app.use(session({
+  secret: process.env.SESSION_SECRET || 'assetflow_fallback_dev_session_secret_key',
+  resave: false,
+  saveUninitialized: false,
+  cookie: {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    maxAge: 24 * 60 * 60 * 1000 // 24 hours
+  }
+}));
+
 // Serve Uploads Directory Static Assets
 app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
+
+// Register Auth Routes
+app.use('/api', authRoutes);
 
 // Health Check API Endpoint
 app.get('/api/health', (req, res) => {

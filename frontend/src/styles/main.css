@@ -1,45 +1,121 @@
-/* Custom CSS styling overrides for AssetFlow ERP */
-
+/* Custom CSS Variables for AssetFlow Enterprise ERP */
 :root {
-  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
-  --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  --info-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+  --primary-color: #002046;
+  --secondary-color: #8c4f10;
+  --brand-dark: #2F3E46;
+  --brand-accent: #B87333;
+  --background-color: #f8f7f4;
+  --text-color: #111d26;
+  --outline-color: #c4c6cf;
+  --surface-color: #ffffff;
+  --surface-low: #ebf5ff;
+  --surface-high: #ddeaf7;
+  
+  --primary-gradient: linear-gradient(135deg, #002046 0%, #1b365d 100%);
+  --accent-gradient: linear-gradient(135deg, #B87333 0%, #8c4f10 100%);
 }
 
 body {
-  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background-color: #f8fafc;
-  color: #1e293b;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: var(--background-color);
+  color: var(--text-color);
   overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
 }
 
-/* Premium Gradient Utilities */
-.bg-primary-gradient {
-  background: var(--primary-gradient);
+h1, h2, h3, h4, h5, h6, .headline-font {
+  font-family: 'Space Grotesk', sans-serif;
+  font-weight: 600;
+  letter-spacing: -0.01em;
 }
 
-.text-primary-gradient {
-  background: var(--primary-gradient);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
+/* Custom Scrollbar for ERP Data Tables */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--background-color);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--outline-color);
+  border-radius: 10px;
 }
 
 /* Custom Card Styling */
-.card {
-  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-  border: 1px solid rgba(226, 232, 240, 0.8);
+.card-shadow {
+  box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.03);
 }
 
-.card:hover {
+.enterprise-shadow {
+  box-shadow: 0px 8px 30px rgba(0, 0, 0, 0.06);
+}
+
+.hover-card {
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+  box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.05);
 }
 
-/* Micro-animations */
+/* Custom Theme Overrides for Bootstrap Classes */
+.bg-primary {
+  background-color: var(--primary-color) !important;
+}
+
+.text-primary {
+  color: var(--primary-color) !important;
+}
+
+.bg-secondary {
+  background-color: var(--secondary-color) !important;
+}
+
+.text-secondary {
+  color: var(--secondary-color) !important;
+}
+
+.btn-primary {
+  background-color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+  background-color: #1b365d !important;
+  border-color: #1b365d !important;
+}
+
+.btn-secondary {
+  background-color: var(--secondary-color);
+  border-color: var(--secondary-color);
+  color: #fff;
+}
+.btn-secondary:hover, .btn-secondary:focus, .btn-secondary:active {
+  background-color: #763f00 !important;
+  border-color: #763f00 !important;
+  color: #fff !important;
+}
+
+.btn-outline-primary {
+  color: var(--primary-color);
+  border-color: var(--primary-color);
+}
+.btn-outline-primary:hover {
+  background-color: var(--primary-color);
+  color: #fff;
+}
+
+/* Left Brand Panel Grid */
+.asset-grid {
+  background-image: radial-gradient(var(--brand-accent) 1px, transparent 1px);
+  background-size: 30px 30px;
+}
+
+/* Animation Utilities */
 @keyframes fadeIn {
   from {
     opacity: 0;
-    transform: translateY(10px);
+    transform: translateY(6px);
   }
   to {
     opacity: 1;
@@ -47,11 +123,11 @@ body {
   }
 }
 
-#app {
-  animation: fadeIn 0.4s ease-out;
+.fade-in-el {
+  animation: fadeIn 0.3s ease-out forwards;
 }
 
-/* Navigation Interactive Hover styling */
+/* Nav Links Styling */
 [data-link] {
   cursor: pointer;
 }

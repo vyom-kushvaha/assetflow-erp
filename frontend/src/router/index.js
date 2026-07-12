@@ -56,6 +56,9 @@ export class Router {
       try {
         const viewContent = await matchedRoute.render();
         this.container.innerHTML = viewContent;
+        if (matchedRoute.onMount) {
+          matchedRoute.onMount();
+        }
       } catch (error) {
         console.error('Route render failure:', error);
         this.container.innerHTML = `
