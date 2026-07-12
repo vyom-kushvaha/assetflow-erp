@@ -17,6 +17,7 @@ import { MaintenancePage } from './pages/maintenance.js';
 import { AuditPage } from './pages/audit.js';
 import { ReportsPage } from './pages/reports.js';
 import { LogsPage } from './pages/logs.js';
+import { NotificationsPage } from './pages/notifications.js';
 
 // Register routes mapping templates and lifecycle event handlers
 const routes = [
@@ -69,6 +70,11 @@ const routes = [
     path: '/logs',
     render: () => LogsPage.render(),
     onMount: (router) => LogsPage.onMount(router)
+  },
+  {
+    path: '/notifications',
+    render: () => NotificationsPage.render(),
+    onMount: (router) => NotificationsPage.onMount(router)
   },
   {
     path: '*',

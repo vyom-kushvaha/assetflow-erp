@@ -8,6 +8,9 @@ const assetRoutes = require('./routes/assetRoutes');
 const allocationRoutes = require('./routes/allocationRoutes');
 const bookingRoutes = require('./routes/bookingRoutes');
 const maintenanceRoutes = require('./routes/maintenanceRoutes');
+const dashboardRoutes = require('./routes/dashboardRoutes');
+const auditRoutes = require('./routes/auditRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -53,6 +56,9 @@ app.use('/api', assetRoutes);
 app.use('/api', allocationRoutes);
 app.use('/api', bookingRoutes);
 app.use('/api', maintenanceRoutes);
+app.use('/api', dashboardRoutes);
+app.use('/api', auditRoutes);
+app.use('/api', reportRoutes);
 
 // Health Check API Endpoint
 app.get('/api/health', (req, res) => {

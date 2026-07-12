@@ -1,11 +1,26 @@
 import { renderLayout, bindLayoutEvents } from '../layouts/layout.js';
-import { getState, saveState, logActivity } from '../utils/state.js';
+import * as bootstrap from 'bootstrap';
 
 export const AuditPage = {
   render() {
-    const state = getState();
-    const audits = state.audits;
-    const departments = state.departments;
+    let user = { role: 'EMPLOYEE' };
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) user = JSON.parse(savedUser);
+    } catch (e) {}
+
+    const isEmployee = user.role === 'EMPLOYEE';
+
+    if (isEmployee) {
+      const accessDeniedHTML = `
+        <div class="d-flex flex-column justify-content-center align-items-center py-5 text-center min-vh-50">
+          <span class="material-symbols-outlined display-1 text-danger mb-3">gpp_bad</span>
+          <h3 class="fw-bold text-dark">Access Denied</h3>
+          <p class="text-muted max-width-md">Only Administrators, Asset Managers, and assigned Auditors can access the compliance workspace.</p>
+        </div>
+      `;
+      return renderLayout(accessDeniedHTML, '/audit');
+    }
 
     const contentHTML = `
       <div class="d-flex justify-content-between align-items-end mb-4">
@@ -13,7 +28,7 @@ export const AuditPage = {
           <h2 class="text-primary m-0 fw-bold">Asset Audit</h2>
           <p class="text-muted m-0 small">Schedule validation cycles, verify hardware conditions, and update asset compliance logs.</p>
         </div>
-        <button class="btn btn-primary d-flex align-items-center gap-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-create-audit">
+        <button class="btn btn-primary d-flex align-items-center gap-1.5 shadow-sm" data-bs-toggle="modal" data-bs-target="#modal-create-audit" id="btn-initiate-audit-modal">
           <span class="material-symbols-outlined fs-5">fact_check</span>
           <span>Initiate Audit Cycle</span>
         </button>
@@ -25,18 +40,18 @@ export const AuditPage = {
           <div class="card card-shadow border-light-subtle rounded-3 p-4 bg-white h-100">
             <div class="d-flex justify-content-between align-items-center mb-3">
               <h4 class="h5 fw-bold m-0 text-dark">Ongoing Verification Workspace</h4>
-              <span class="badge bg-primary px-3 py-1.5 rounded" id="workspace-audit-badge">Loading...</span>
+              <span class="badge bg-secondary px-3 py-1.5 rounded" id="workspace-audit-badge">Select a Cycle</span>
             </div>
             
-            <div id="audit-workspace-placeholder" class="text-center py-5 text-muted d-none">
-              <span class="material-symbols-outlined display-3 mb-2">assignment_turned_in</span>
-              <p>No active audit cycle selected. Start a new cycle or select one from the history panel.</p>
+            <div id="audit-workspace-placeholder" class="text-center py-5 text-muted">
+              <span class="material-symbols-outlined display-3 mb-2 text-secondary">assignment_turned_in</span>
+              <p>No active audit cycle selected. Start a planned cycle or select one from the history panel.</p>
             </div>
 
-            <div id="audit-workspace-content">
+            <div id="audit-workspace-content" class="d-none">
               <div class="alert alert-info py-2 text-sm d-flex align-items-center gap-2 mb-3">
                 <span class="material-symbols-outlined fs-5">info</span>
-                <span>Select status, check condition, and record verified state for each item.</span>
+                <span>Assigned auditors should select finding state, record conditions notes, and click Save.</span>
               </div>
               <div class="table-responsive">
                 <table class="table table-hover align-middle mb-0">
@@ -45,7 +60,8 @@ export const AuditPage = {
                       <th>Tag</th>
                       <th>Asset Name</th>
                       <th>Location</th>
-                      <th>Audit Details</th>
+                      <th>Result</th>
+                      <th>Verification Notes</th>
                       <th>Action</th>
                     </tr>
                   </thead>
@@ -55,8 +71,8 @@ export const AuditPage = {
                 </table>
               </div>
               
-              <div class="d-flex justify-content-end mt-4 pt-3 border-top">
-                <button class="btn btn-success rounded-pill px-4 shadow-sm" id="btn-complete-audit-cycle">Complete Audit Cycle</button>
+              <div class="d-flex justify-content-end mt-4 pt-3 border-top" id="workspace-close-container">
+                <button class="btn btn-success rounded-pill px-4 shadow-sm" id="btn-complete-audit-cycle">Close Audit Cycle</button>
               </div>
             </div>
           </div>
@@ -89,17 +105,37 @@ export const AuditPage = {
                   <input type="text" class="form-control" id="audit-name" placeholder="IT Assets Audit Q3 2026" required>
                 </div>
 
-                <div class="mb-3">
-                  <label class="form-label fw-semibold" for="audit-scope">Scope Department *</label>
-                  <select class="form-select" id="audit-scope" required>
-                    <option value="" disabled selected>Select Scope...</option>
-                    ${departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('')}
-                  </select>
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="audit-scope-dept">Scope Department</label>
+                    <select class="form-select" id="audit-scope-dept">
+                      <option value="" selected>All Departments</option>
+                      <!-- Populated dynamically -->
+                    </select>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="audit-scope-loc">Scope Location Filter</label>
+                    <input type="text" class="form-control" id="audit-scope-loc" placeholder="e.g. Floor 2">
+                  </div>
+                </div>
+
+                <div class="row g-3 mb-3">
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="audit-start">Start Date *</label>
+                    <input type="date" class="form-control" id="audit-start" required>
+                  </div>
+                  <div class="col-md-6">
+                    <label class="form-label fw-semibold" for="audit-end">End Date *</label>
+                    <input type="date" class="form-control" id="audit-end" required>
+                  </div>
                 </div>
 
                 <div class="mb-3">
-                  <label class="form-label fw-semibold" for="audit-date">Audit Scheduled Date *</label>
-                  <input type="date" class="form-control" id="audit-date" required>
+                  <label class="form-label fw-semibold" for="audit-auditors">Assign Auditor *</label>
+                  <select class="form-select" id="audit-auditors" multiple required style="height: 100px;">
+                    <!-- Populated dynamically -->
+                  </select>
+                  <small class="text-muted">Hold Ctrl (Cmd) to select multiple auditors.</small>
                 </div>
 
                 <div class="mt-4 pt-3 border-top d-flex justify-content-end gap-2">
@@ -119,233 +155,356 @@ export const AuditPage = {
   onMount(router) {
     bindLayoutEvents(router);
 
-    let activeCycle = null;
+    let user = { role: 'EMPLOYEE' };
+    try {
+      const savedUser = localStorage.getItem('user');
+      if (savedUser) user = JSON.parse(savedUser);
+    } catch (e) {}
+
+    if (user.role === 'EMPLOYEE') return;
+
+    // Move modals to body
+    const pageModals = document.querySelectorAll('.modal');
+    pageModals.forEach(modal => {
+      document.body.appendChild(modal);
+    });
+
+    function dismissModal(modalId) {
+      const modalEl = document.getElementById(modalId);
+      if (modalEl) {
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+    }
+
+    let cycles = [];
+    let departments = [];
+    let employees = [];
+    let selectedCycle = null;
+    let selectedFindings = [];
+
+    const isManager = user.role === 'ADMIN' || user.role === 'ASSET_MANAGER';
+
+    // Hide initiate audit button if not manager
+    const initiateBtn = document.getElementById('btn-initiate-audit-modal');
+    if (initiateBtn && !isManager) {
+      initiateBtn.classList.add('d-none');
+    }
+
+    async function loadData() {
+      try {
+        // Fetch Departments
+        const resDept = await fetch('/api/org/departments');
+        if (resDept.ok) {
+          const data = await resDept.json();
+          departments = data.departments || [];
+        }
+
+        // Fetch Employees
+        const resEmp = await fetch('/api/org/employees');
+        if (resEmp.ok) {
+          const data = await resEmp.json();
+          employees = data.employees || [];
+        }
+
+        // Fetch Audit Cycles
+        const resCycles = await fetch('/api/audit/cycles');
+        if (resCycles.ok) {
+          const data = await resCycles.json();
+          cycles = data.cycles || [];
+        }
+
+        populateSelectors();
+        renderAuditHistory();
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function populateSelectors() {
+      // Dept selector
+      const deptSelect = document.getElementById('audit-scope-dept');
+      if (deptSelect) {
+        deptSelect.innerHTML = '<option value="" selected>All Departments</option>' +
+          departments.map(d => `<option value="${d.id}">${d.name}</option>`).join('');
+      }
+
+      // Auditors selector
+      const auditorsSelect = document.getElementById('audit-auditors');
+      if (auditorsSelect) {
+        auditorsSelect.innerHTML = employees.map(e => `<option value="${e.id}">${e.name} (${e.role})</option>`).join('');
+      }
+    }
 
     function renderAuditHistory() {
-      const state = getState();
       const list = document.getElementById('audit-cycles-list');
-      
-      if (state.audits.length === 0) {
-        list.innerHTML = `<div class="text-center py-4 text-muted small">No audit history.</div>`;
+      if (!list) return;
+
+      if (cycles.length === 0) {
+        list.innerHTML = `<div class="text-center py-4 text-muted small">No audit history recorded.</div>`;
         return;
       }
 
-      list.innerHTML = state.audits.map(a => {
+      list.innerHTML = cycles.map(a => {
         let badgeColor = 'bg-secondary';
-        if (a.status === 'IN_PROGRESS') {
-          badgeColor = 'bg-primary';
-          activeCycle = a;
-        } else if (a.status === 'COMPLETED') {
-          badgeColor = 'bg-success';
-        }
+        if (a.status === 'IN_PROGRESS') badgeColor = 'bg-primary';
+        else if (a.status === 'CLOSED') badgeColor = 'bg-success';
+        else if (a.status === 'PLANNED') badgeColor = 'bg-warning text-dark';
+
+        const total = a.total_assets || 0;
+        const verified = a.verified_assets || 0;
+        const progress = total > 0 ? Math.round((verified / total) * 100) : 0;
 
         return `
-          <div class="border rounded p-3 fade-in-el bg-light bg-opacity-25 shadow-xs">
+          <div class="border rounded p-3 fade-in-el bg-light bg-opacity-25 shadow-xs cursor-pointer btn-select-cycle" data-id="${a.id}">
             <div class="d-flex justify-content-between align-items-start mb-2">
               <span class="badge ${badgeColor} rounded" style="font-size: 10px;">${a.status}</span>
-              <small class="text-muted" style="font-size: 11px;">${a.date}</small>
+              <small class="text-muted" style="font-size: 11px;">${a.start_date}</small>
             </div>
             <strong class="text-dark d-block text-truncate" style="font-size: 14px;">${a.name}</strong>
-            <small class="text-muted">Scope: ${a.scope}</small>
-            ${a.status === 'IN_PROGRESS' 
-              ? `<div class="mt-2"><button class="btn btn-xs btn-outline-primary py-0.5 px-3 fs-7 btn-select-audit d-none" data-id="${a.id}">Select</button></div>` 
-              : ''
-            }
+            <small class="text-muted d-block small">Scope: ${a.department_name || 'All'} / ${a.scope_location || 'Global'}</small>
+            
+            <div class="mt-2.5">
+              <div class="d-flex justify-content-between text-muted fs-8 mb-1">
+                <span>Progress</span>
+                <span>${verified}/${total} (${progress}%)</span>
+              </div>
+              <div class="progress" style="height: 4px;">
+                <div class="progress-bar bg-primary" role="progressbar" style="width: ${progress}%;"></div>
+              </div>
+            </div>
           </div>
         `;
       }).join('');
+
+      // Bind history items clicks
+      document.querySelectorAll('.btn-select-cycle').forEach(card => {
+        card.addEventListener('click', () => {
+          const id = card.getAttribute('data-id');
+          loadCycleDetails(id);
+        });
+      });
+    }
+
+    async function loadCycleDetails(id) {
+      try {
+        const res = await fetch(`/api/audit/cycles/${id}`);
+        if (res.ok) {
+          const data = await res.json();
+          selectedCycle = data.cycle;
+          selectedFindings = data.findings || [];
+          renderWorkspace();
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     function renderWorkspace() {
-      const state = getState();
       const workspacePlaceholder = document.getElementById('audit-workspace-placeholder');
       const workspaceContent = document.getElementById('audit-workspace-content');
       const badge = document.getElementById('workspace-audit-badge');
+      const tbody = document.getElementById('table-audit-assets-body');
 
-      if (!activeCycle) {
+      if (!selectedCycle) {
         workspacePlaceholder.classList.remove('d-none');
         workspaceContent.classList.add('d-none');
-        badge.innerText = 'No Active Audit';
+        badge.innerText = 'Select a Cycle';
         badge.className = 'badge bg-secondary px-3 py-1.5 rounded';
         return;
       }
 
       workspacePlaceholder.classList.add('d-none');
       workspaceContent.classList.remove('d-none');
-      badge.innerText = `Active: ${activeCycle.scope}`;
-      badge.className = 'badge bg-primary px-3 py-1.5 rounded';
-
-      // Load assets matching the audit scope
-      // We will match the scope string to the department name
-      const targetDept = state.departments.find(d => d.name === activeCycle.scope);
-      const targetDeptId = targetDept ? targetDept.id : -1;
+      badge.innerText = `${selectedCycle.status}: ${selectedCycle.name}`;
       
-      const scopedAssets = state.assets.filter(a => a.departmentId === targetDeptId);
-      const tbody = document.getElementById('table-audit-assets-body');
+      let badgeColor = 'bg-secondary';
+      if (selectedCycle.status === 'IN_PROGRESS') badgeColor = 'bg-primary';
+      else if (selectedCycle.status === 'CLOSED') badgeColor = 'bg-success';
+      else if (selectedCycle.status === 'PLANNED') badgeColor = 'bg-warning text-dark';
+      badge.className = `badge ${badgeColor} px-3 py-1.5 rounded`;
 
-      if (scopedAssets.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="5" class="text-center py-4 text-muted">No assets found in the scoped department "${activeCycle.scope}".</td>
-          </tr>
-        `;
+      // Render workspace close container controls
+      const closeContainer = document.getElementById('workspace-close-container');
+      if (closeContainer) {
+        if (selectedCycle.status === 'PLANNED' && isManager) {
+          closeContainer.innerHTML = `<button class="btn btn-primary rounded-pill px-4 shadow-sm" id="btn-start-audit-cycle">Start Audit Cycle</button>`;
+          // Bind start
+          document.getElementById('btn-start-audit-cycle').addEventListener('click', startAuditCycle);
+        } else if (selectedCycle.status === 'IN_PROGRESS' && isManager) {
+          closeContainer.innerHTML = `<button class="btn btn-success rounded-pill px-4 shadow-sm" id="btn-complete-audit-cycle">Close Audit Cycle</button>`;
+          // Bind close
+          document.getElementById('btn-complete-audit-cycle').addEventListener('click', closeAuditCycle);
+        } else {
+          closeContainer.innerHTML = ``;
+        }
+      }
+
+      if (selectedFindings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">No scoped assets in this cycle.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = scopedAssets.map(asset => {
-        // Check if verified already in activeCycle.findings
-        const isVerified = activeCycle.findings && activeCycle.findings.includes(asset.id);
+      const isClosed = selectedCycle.status === 'CLOSED';
+
+      tbody.innerHTML = selectedFindings.map(f => {
+        const hasResult = f.result !== null;
+        let resultBadge = '-';
+        if (f.result === 'VERIFIED') resultBadge = '<span class="badge bg-success">Verified</span>';
+        else if (f.result === 'DAMAGED') resultBadge = '<span class="badge bg-warning text-dark">Damaged</span>';
+        else if (f.result === 'MISSING') resultBadge = '<span class="badge bg-danger">Missing</span>';
 
         return `
-          <tr class="${isVerified ? 'table-success opacity-75' : ''} fade-in-el">
-            <td class="fw-semibold text-primary py-3">${asset.tag}</td>
-            <td class="fw-bold text-dark">${asset.name}</td>
-            <td>${asset.location || 'N/A'}</td>
+          <tr class="${hasResult ? 'table-light opacity-85' : ''} fade-in-el">
+            <td class="fw-semibold text-primary py-3">${f.asset_tag}</td>
+            <td class="fw-bold text-dark">${f.asset_name}</td>
+            <td><small class="text-muted">${f.asset_location || 'Storage Pool'}</small></td>
             <td>
-              ${isVerified ? `
-                <span class="text-success fw-bold d-flex align-items-center gap-1">
-                  <span class="material-symbols-outlined fs-5">check_circle</span> Verified
-                </span>
-              ` : `
-                <div class="row g-2">
-                  <div class="col-6">
-                    <select class="form-select form-select-sm border-light-subtle" id="verify-cond-${asset.id}">
-                      <option value="NEW" ${asset.condition === 'NEW' ? 'selected' : ''}>New</option>
-                      <option value="GOOD" ${asset.condition === 'GOOD' ? 'selected' : ''}>Good</option>
-                      <option value="FAIR" ${asset.condition === 'FAIR' ? 'selected' : ''}>Fair</option>
-                      <option value="POOR" ${asset.condition === 'POOR' ? 'selected' : ''}>Poor</option>
-                      <option value="DAMAGED" ${asset.condition === 'DAMAGED' ? 'selected' : ''}>Damaged</option>
-                    </select>
-                  </div>
-                  <div class="col-6">
-                    <select class="form-select form-select-sm border-light-subtle" id="verify-status-${asset.id}">
-                      <option value="AVAILABLE" ${asset.status === 'AVAILABLE' ? 'selected' : ''}>Available</option>
-                      <option value="ALLOCATED" ${asset.status === 'ALLOCATED' ? 'selected' : ''}>Allocated</option>
-                      <option value="LOST" ${asset.status === 'LOST' ? 'selected' : ''}>Lost</option>
-                    </select>
-                  </div>
-                </div>
+              ${isClosed || hasResult ? resultBadge : `
+                <select class="form-select form-select-sm" id="verify-result-${f.id}">
+                  <option value="" disabled selected>Select Result...</option>
+                  <option value="VERIFIED">VERIFIED</option>
+                  <option value="DAMAGED">DAMAGED</option>
+                  <option value="MISSING">MISSING</option>
+                </select>
               `}
             </td>
             <td>
-              ${isVerified 
-                ? '<span class="text-muted small">-</span>' 
-                : `<button class="btn btn-sm btn-primary px-3 py-1 btn-verify-asset" data-id="${asset.id}">Verify</button>`
-              }
+              ${isClosed || hasResult ? `<span>${f.notes || ''}</span>` : `
+                <input type="text" class="form-control form-control-sm" id="verify-notes-${f.id}" placeholder="Condition notes..." />
+              `}
+            </td>
+            <td>
+              ${isClosed || hasResult ? `
+                <small class="text-muted">Checked by: ${f.auditor_name || 'System'}</small>
+              ` : `
+                <button class="btn btn-sm btn-primary px-3 py-1 btn-verify-asset" data-id="${f.id}">Save</button>
+              `}
             </td>
           </tr>
         `;
       }).join('');
 
-      // Bind verify actions
+      // Bind verify save button
       document.querySelectorAll('.btn-verify-asset').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const assetId = parseInt(e.target.getAttribute('data-id'), 10);
-          const condition = document.getElementById(`verify-cond-${assetId}`).value;
-          const status = document.getElementById(`verify-status-${assetId}`).value;
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const result = document.getElementById(`verify-result-${id}`).value;
+          const notes = document.getElementById(`verify-notes-${id}`).value.trim();
 
-          const state = getState();
-          
-          // Add finding
-          const audit = state.audits.find(a => a.id === activeCycle.id);
-          if (audit) {
-            if (!audit.findings) audit.findings = [];
-            if (!audit.findings.includes(assetId)) {
-              audit.findings.push(assetId);
+          if (!result) {
+            alert('Please select a result before saving.');
+            return;
+          }
+
+          try {
+            const res = await fetch(`/api/audit/findings/${id}`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ result, notes })
+            });
+
+            if (res.ok) {
+              alert('Finding saved!');
+              loadCycleDetails(selectedCycle.id);
+            } else {
+              const data = await res.json();
+              alert(data.error ? data.error.message : 'Failed to save finding.');
             }
+          } catch (e) {
+            console.error(e);
           }
-
-          // Update asset status/condition
-          const asset = state.assets.find(a => a.id === assetId);
-          if (asset) {
-            asset.condition = condition;
-            asset.status = status;
-          }
-
-          saveState(state);
-          logActivity(`Audited and verified asset condition: ${asset ? asset.tag : 'ID ' + assetId}`, 'AUDIT');
-          
-          // Re-render
-          activeCycle = state.audits.find(a => a.id === activeCycle.id);
-          renderWorkspace();
         });
       });
     }
 
-    // Complete audit cycle action
-    const btnCompleteCycle = document.getElementById('btn-complete-audit-cycle');
-    if (btnCompleteCycle) {
-      btnCompleteCycle.addEventListener('click', () => {
-        if (!activeCycle) return;
-        if (confirm('Complete compliance audit cycle? This will lock all verified findings.')) {
-          const state = getState();
-          const audit = state.audits.find(a => a.id === activeCycle.id);
-          if (audit) {
-            audit.status = 'COMPLETED';
-            saveState(state);
-            logActivity(`Compliance audit cycle locked & completed: ${audit.name}`, 'AUDIT');
-            activeCycle = null;
-            router.navigateTo('/audit');
-            alert('Audit cycle completed successfully!');
-          }
+    async function startAuditCycle() {
+      if (!selectedCycle) return;
+      try {
+        const res = await fetch(`/api/audit/cycles/${selectedCycle.id}/start`, { method: 'POST' });
+        if (res.ok) {
+          alert('Audit cycle started! Auditors notified.');
+          loadData();
+          loadCycleDetails(selectedCycle.id);
         }
-      });
+      } catch (e) {
+        console.error(e);
+      }
+    }
+
+    async function closeAuditCycle() {
+      if (!selectedCycle) return;
+      if (confirm('Complete and close compliance audit cycle? This locks all findings and updates asset status in directory.')) {
+        try {
+          const res = await fetch(`/api/audit/cycles/${selectedCycle.id}/close`, { method: 'POST' });
+          if (res.ok) {
+            const data = await res.json();
+            alert(`Audit Closed successfully! Discrepancy Summary:\n- Verified: ${data.summary.verified}\n- Damaged: ${data.summary.damaged}\n- Missing: ${data.summary.missing}`);
+            loadData();
+            loadCycleDetails(selectedCycle.id);
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      }
     }
 
     // Create Audit Form Submit
     const formAudit = document.getElementById('form-create-audit');
     if (formAudit) {
-      formAudit.addEventListener('submit', (e) => {
+      formAudit.addEventListener('submit', async (e) => {
         e.preventDefault();
 
         const name = document.getElementById('audit-name').value.trim();
-        const scopeId = parseInt(document.getElementById('audit-scope').value, 10);
-        const date = document.getElementById('audit-date').value;
+        const scopeDepartmentId = document.getElementById('audit-scope-dept').value;
+        const scopeLocation = document.getElementById('audit-scope-loc').value.trim();
+        const startDate = document.getElementById('audit-start').value;
+        const endDate = document.getElementById('audit-end').value;
+        
+        // Handle multi-select auditors
+        const auditorsSelect = document.getElementById('audit-auditors');
+        const auditorIds = Array.from(auditorsSelect.selectedOptions).map(o => o.value);
 
-        if (!name || isNaN(scopeId) || !date) {
+        if (!name || !startDate || !endDate || auditorIds.length === 0) {
           alert('Please fill out all required fields.');
           return;
         }
 
-        const state = getState();
+        try {
+          const res = await fetch('/api/audit/cycles', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name,
+              scopeDepartmentId,
+              scopeLocation,
+              startDate,
+              endDate,
+              auditorIds
+            })
+          });
 
-        // Enforce only one active cycle at a time
-        if (state.audits.some(a => a.status === 'IN_PROGRESS')) {
-          alert('Initiation Blocked: A compliance audit cycle is currently active. Complete it before starting a new one.');
-          return;
+          const data = await res.json();
+          if (res.ok) {
+            alert(`Audit initiated! ${data.scopedAssets} assets added to cycle scope.`);
+            formAudit.reset();
+            dismissModal('modal-create-audit');
+            loadData();
+          } else {
+            alert(data.error ? data.error.message : 'Failed to initiate audit.');
+          }
+        } catch (err) {
+          console.error(err);
         }
-
-        const dept = state.departments.find(d => d.id === scopeId);
-        const scope = dept ? dept.name : 'Unknown';
-
-        const newAudit = {
-          id: state.audits.length + 1,
-          name,
-          scope,
-          date,
-          status: 'IN_PROGRESS',
-          findings: []
-        };
-
-        state.audits.push(newAudit);
-        saveState(state);
-        logActivity(`Initiated compliance audit cycle: ${name}`, 'AUDIT');
-
-        // Reset
-        formAudit.reset();
-        const modalEl = document.getElementById('modal-create-audit');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) {
-          modalInstance.hide();
-        }
-
-        router.navigateTo('/audit');
-        alert('Audit cycle initiated successfully!');
       });
     }
 
-    // Initial renders
-    renderAuditHistory();
-    renderWorkspace();
+    loadData();
   }
 };

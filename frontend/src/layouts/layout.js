@@ -181,7 +181,7 @@ export function bindLayoutEvents(router) {
   if (navBtnNotifications) {
     navBtnNotifications.addEventListener('click', (e) => {
       e.preventDefault();
-      router.navigateTo('/logs');
+      router.navigateTo('/notifications');
     });
   }
 }
