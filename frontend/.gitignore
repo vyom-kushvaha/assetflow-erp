@@ -1,0 +1,25 @@
+# Dependency Directories
+node_modules/
+
+# Production Build Output
+dist/
+dist-ssr/
+
+# Development / Runtime Local Files
+*.local
+.env
+.env.*
+!.env.example
+
+# Editor / System Files
+.vscode/
+.idea/
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Vite Cache
+.vite/

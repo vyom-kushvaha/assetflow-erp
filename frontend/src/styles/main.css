@@ -1,0 +1,57 @@
+/* Custom CSS styling overrides for AssetFlow ERP */
+
+:root {
+  --primary-gradient: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%);
+  --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+  --info-gradient: linear-gradient(135deg, #0ea5e9 0%, #0284c7 100%);
+}
+
+body {
+  font-family: 'Outfit', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  background-color: #f8fafc;
+  color: #1e293b;
+  overflow-x: hidden;
+}
+
+/* Premium Gradient Utilities */
+.bg-primary-gradient {
+  background: var(--primary-gradient);
+}
+
+.text-primary-gradient {
+  background: var(--primary-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* Custom Card Styling */
+.card {
+  transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+
+.card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.05), 0 4px 6px -2px rgba(0, 0, 0, 0.03) !important;
+}
+
+/* Micro-animations */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+#app {
+  animation: fadeIn 0.4s ease-out;
+}
+
+/* Navigation Interactive Hover styling */
+[data-link] {
+  cursor: pointer;
+}
