@@ -43,6 +43,43 @@ function runSqlFile(db, filePath, label) {
     });
 }
 
+async function ensureInitialized() {
+    return new Promise((resolve, reject) => {
+        const db = new sqlite3.Database(DB_PATH, async (err) => {
+            if (err) return reject(err);
+
+            try {
+                await new Promise((res, rej) => {
+                    db.run('PRAGMA foreign_keys = ON;', (e) => (e ? rej(e) : res()));
+                });
+
+                // Check if 'users' table exists
+                const tableExists = await new Promise((res, rej) => {
+                    db.get("SELECT name FROM sqlite_master WHERE type='table' AND name='users';", [], (e, row) => {
+                        if (e) return rej(e);
+                        res(!!row);
+                    });
+                });
+
+                if (!tableExists) {
+                    console.log(`Table 'users' not found. Initializing database schema at ${DB_PATH}...`);
+                    await runSqlFile(db, SCHEMA_PATH, 'Schema creation');
+                    console.log(`Database schema created. Seeding default demo data...`);
+                    await runSqlFile(db, SEED_PATH, 'Seed data load');
+                    console.log(`Database successfully initialized and seeded.`);
+                } else {
+                    console.log(`Database already initialized ('users' table exists). Skipping initialization.`);
+                }
+
+                db.close((e) => (e ? reject(e) : resolve()));
+            } catch (error) {
+                db.close();
+                reject(error);
+            }
+        });
+    });
+}
+
 async function main() {
     if (shouldReset && fs.existsSync(DB_PATH)) {
         fs.unlinkSync(DB_PATH);
@@ -71,4 +108,8 @@ async function main() {
     }
 }
 
-main();
+if (require.main === module) {
+    main();
+}
+
+module.exports = { ensureInitialized };
