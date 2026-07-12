@@ -73,6 +73,34 @@ export const AllocationPage = {
         </div>
       </div>
 
+      <!-- Bottom Section: Full History -->
+      <div class="card card-shadow border-light-subtle rounded-3 p-4 bg-white mt-4">
+        <h4 class="h5 fw-bold mb-3 text-dark d-flex align-items-center gap-2">
+          <span class="material-symbols-outlined text-primary">history</span>
+          <span>Full Allocations & Handover History</span>
+        </h4>
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-light">
+              <tr style="font-size: 11px;" class="text-muted uppercase fw-bold">
+                <th>Asset Tag</th>
+                <th>Asset Name</th>
+                <th>Assigned To</th>
+                <th>Allocation Date</th>
+                <th>Return / Handover Date</th>
+                <th>Status</th>
+                <th>Return Condition Notes</th>
+              </tr>
+            </thead>
+            <tbody style="font-size: 13.5px;" id="allocations-history-table-body">
+              <tr>
+                <td colspan="7" class="text-center py-4 text-muted">Loading history...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
       <!-- Allocate Asset Modal -->
       ${canAllocate ? `
       <div class="modal fade" id="modal-allocate-asset" tabindex="-1" aria-hidden="true">
@@ -314,6 +342,7 @@ export const AllocationPage = {
         populateSelectors();
         renderAllocationsTable();
         renderTransfersList();
+        renderAllocationsHistoryTable();
       } catch (err) {
         console.error('Failed to load allocations data', err);
       }
@@ -414,10 +443,48 @@ export const AllocationPage = {
           document.getElementById('return-confirm-text').innerHTML = `Are you sure you want to close allocation for asset <strong>${tag} - ${name}</strong> and return it back to storage?`;
           document.getElementById('return-condition-notes').value = '';
 
-          const modal = new bootstrap.Modal(document.getElementById('modal-return-asset'));
+          const modal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-return-asset'));
           modal.show();
         });
       });
+    }
+
+    function renderAllocationsHistoryTable() {
+      const tbody = document.getElementById('allocations-history-table-body');
+      if (!tbody) return;
+
+      if (allocations.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No allocation history found.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = allocations.map(al => {
+        const assignedTo = al.user_name || (al.department_name ? `${al.department_name} (Dept)` : '') || 'N/A';
+        
+        let statusBadge = 'bg-secondary';
+        let returnDateText = al.actual_return_date || '-';
+
+        if (al.status === 'ACTIVE') {
+          statusBadge = 'bg-primary';
+        } else if (al.status === 'RETURNED') {
+          statusBadge = 'bg-success';
+        } else if (al.status === 'TRANSFERRED') {
+          statusBadge = 'bg-info text-dark';
+          returnDateText = 'Transferred';
+        }
+
+        return `
+          <tr class="fade-in-el">
+            <td class="fw-semibold text-primary py-3">${al.asset_tag}</td>
+            <td class="fw-bold text-dark">${al.asset_name}</td>
+            <td>${assignedTo}</td>
+            <td>${al.allocation_date}</td>
+            <td>${returnDateText}</td>
+            <td><span class="badge ${statusBadge} px-2 py-1 rounded">${al.status}</span></td>
+            <td><span class="text-muted small">${al.return_condition_notes || '-'}</span></td>
+          </tr>
+        `;
+      }).join('');
     }
 
     function renderTransfersList() {
@@ -572,7 +639,7 @@ export const AllocationPage = {
                   const transSelect = document.getElementById('trans-asset');
                   if (transSelect) transSelect.value = assetId;
 
-                  const transModal = new bootstrap.Modal(document.getElementById('modal-request-transfer'));
+                  const transModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-request-transfer'));
                   transModal.show();
                 }, 400);
               }

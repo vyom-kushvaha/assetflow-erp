@@ -103,8 +103,8 @@ const assetModel = {
   getNextTagNumber() {
     return new Promise((resolve, reject) => {
       const db = getDb();
-      // Match pattern 'AF-XXXX'
-      db.get("SELECT asset_tag FROM assets WHERE asset_tag LIKE 'AF-%' ORDER BY asset_tag DESC LIMIT 1", [], (err, row) => {
+      // Match pattern 'AF-XXXX' where XXXX is digits only to prevent collision with custom tags
+      db.get("SELECT asset_tag FROM assets WHERE asset_tag GLOB 'AF-[0-9][0-9][0-9][0-9]' ORDER BY asset_tag DESC LIMIT 1", [], (err, row) => {
         if (err) return reject(err);
         if (!row) return resolve(1); // Seed first tag index
 

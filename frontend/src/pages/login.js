@@ -1,63 +1,104 @@
-/**
- * Page component representing user Login / Signup registration.
- */
+import { renderLayout, bindLayoutEvents } from '../layouts/layout.js';
+
 export const LoginPage = {
   render() {
-    return `
+    const contentHTML = `
       <div class="row min-vh-100 g-0">
-        <!-- Left Side: Brand Panel (60%) -->
-        <section class="col-lg-7 bg-primary position-relative overflow-hidden d-none d-lg-flex flex-column p-5 justify-content-between border-end border-white border-opacity-10">
-          <!-- Abstract Illustration Background -->
-          <div class="position-absolute inset-0 asset-grid opacity-25" style="top: 0; left: 0; right: 0; bottom: 0;"></div>
+        
+        <!-- Left Side: Brand Panel (60%) - Premium Hero & Illustration -->
+        <section class="col-lg-7 bg-primary position-relative overflow-hidden d-none d-lg-flex flex-column p-5 justify-content-between border-end border-white border-opacity-10" style="background: linear-gradient(135deg, #001229 0%, #002046 100%);">
+          <!-- Subtle Glow effect -->
+          <div class="position-absolute rounded-circle" style="width: 300px; height: 300px; background: radial-gradient(circle, rgba(184,115,51,0.15) 0%, rgba(0,0,0,0) 70%); top: -10%; left: -10%; filter: blur(50px);"></div>
+          <div class="position-absolute rounded-circle" style="width: 400px; height: 400px; background: radial-gradient(circle, rgba(13,110,253,0.1) 0%, rgba(0,0,0,0) 70%); bottom: -10%; right: -10%; filter: blur(60px);"></div>
           
-          <!-- Abstract Elements (Conceptual Assets) -->
-          <div class="position-absolute w-100 h-100 top-0 start-0 pointer-events-none">
-            <div class="position-absolute border border-2 border-warning rounded" style="top: 20%; left: 30%; width: 96px; height: 96px; opacity: 0.4;"></div>
-            <div class="position-absolute border border-2 border-warning rounded rotate-12" style="top: 45%; left: 60%; width: 128px; height: 128px; opacity: 0.3;"></div>
-            <div class="position-absolute bg-warning rounded" style="top: 70%; left: 25%; width: 64px; height: 64px; opacity: 0.2;"></div>
-            <div class="position-absolute bg-warning rounded-circle" style="top: 15%; left: 80%; width: 32px; height: 32px; opacity: 0.4;"></div>
-          </div>
-
           <div class="position-relative z-3">
-            <div class="d-flex align-items-center gap-3 mb-5">
-              <div class="bg-warning rounded d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                <span class="fw-bold text-white text-lg headline-font">AF</span>
+            <!-- Brand Logo -->
+            <div class="d-flex align-items-center gap-2.5 mb-5">
+              <div class="rounded-3 d-flex align-items-center justify-content-center bg-white bg-opacity-10 border border-white border-opacity-20" style="width: 36px; height: 36px;">
+                <span class="fw-bold text-white fs-5 headline-font">AF</span>
               </div>
-              <h2 class="h3 text-white m-0 tracking-tight headline-font">AssetFlow</h2>
+              <h2 class="h4 text-white m-0 tracking-tight headline-font fw-bold">AssetFlow</h2>
             </div>
-            <div class="max-w-md" style="max-width: 480px;">
-              <h1 class="display-4 text-white mb-4 lh-sm headline-font fw-bold">Unified Asset & Resource Management.</h1>
-              <p class="text-white-50 fs-5">Enterprise-grade visibility into your physical and digital operational infrastructure. Optimized for global teams.</p>
+
+            <!-- Redesigned Hero Title -->
+            <div class="mb-5">
+              <h1 class="display-5 text-white mb-3 lh-sm headline-font fw-bold" style="letter-spacing: -0.02em;">
+                Manage Every Asset.<br>One Intelligent Platform.
+              </h1>
+              <p class="text-white-50 fs-6" style="max-width: 460px; line-height: 1.6;">
+                Enterprise-grade visibility into physical, digital, and operational infrastructure. Streamline handovers, scheduling, and repairs instantly.
+              </p>
             </div>
+
+            <!-- Redesigned Feature Lists -->
+            <div class="row g-3 mt-4" style="max-width: 580px;">
+              <div class="col-md-6">
+                <div class="d-flex align-items-start gap-2.5">
+                  <span class="material-symbols-outlined text-warning fs-5">explore</span>
+                  <div>
+                    <h6 class="text-white fw-bold mb-0" style="font-size: 13.5px;">Real-Time Tracking</h6>
+                    <small class="text-white-50" style="font-size: 11.5px;">Accurate custody verification and lifecycle logs.</small>
+                  </div>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="d-flex align-items-start gap-2.5">
+                  <span class="material-symbols-outlined text-warning fs-5">event_available</span>
+                  <div>
+                    <h6 class="text-white fw-bold mb-0" style="font-size: 13.5px;">Resource Booking</h6>
+                    <small class="text-white-50" style="font-size: 11.5px;">Automated reservations schedules for shared pools.</small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
           </div>
 
-          <div class="position-relative z-3 d-flex align-items-center gap-4 text-white-50 small">
-            <div class="d-flex align-items-center gap-2">
-              <span class="material-symbols-outlined fs-6">shield</span>
-              <span>ISO 27001 Certified</span>
+          <!-- Bottom Live Statistics Cards -->
+          <div class="position-relative z-3 row g-2 mt-4" style="max-width: 540px;">
+            <div class="col-6 col-sm-3">
+              <div class="border border-white border-opacity-10 rounded-3 p-2.5 text-white" style="background: rgba(255, 255, 255, 0.08);">
+                <small class="text-white-50 d-block mb-1" style="font-size: 9px; letter-spacing: 0.05em; font-weight: bold;">ASSETS MANAGED</small>
+                <strong class="text-white fs-5">1,280+</strong>
+              </div>
             </div>
-            <div class="d-flex align-items-center gap-2">
-              <span class="material-symbols-outlined fs-6">cloud</span>
-              <span>Tier 4 Infrastructure</span>
+            <div class="col-6 col-sm-3">
+              <div class="border border-white border-opacity-10 rounded-3 p-2.5 text-white" style="background: rgba(255, 255, 255, 0.08);">
+                <small class="text-white-50 d-block mb-1" style="font-size: 9px; letter-spacing: 0.05em; font-weight: bold;">DEPARTMENTS</small>
+                <strong class="text-white fs-5">12</strong>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="border border-white border-opacity-10 rounded-3 p-2.5 text-white" style="background: rgba(255, 255, 255, 0.08);">
+                <small class="text-white-50 d-block mb-1" style="font-size: 9px; letter-spacing: 0.05em; font-weight: bold;">ACTIVE USERS</small>
+                <strong class="text-white fs-5">450+</strong>
+              </div>
+            </div>
+            <div class="col-6 col-sm-3">
+              <div class="border border-white border-opacity-10 rounded-3 p-2.5 text-white" style="background: rgba(255, 255, 255, 0.08);">
+                <small class="text-white-50 d-block mb-1" style="font-size: 9px; letter-spacing: 0.05em; font-weight: bold;">OPERATIONAL</small>
+                <strong class="text-white fs-5">99.9%</strong>
+              </div>
             </div>
           </div>
         </section>
 
         <!-- Right Side: Login / Register Area (40% / Full Mobile) -->
         <main class="col-lg-5 bg-light d-flex align-items-center justify-content-center p-4 p-md-5 position-relative">
-          <div class="w-100" style="max-width: 440px; z-index: 20;">
-            <div class="bg-white border rounded-4 shadow-sm overflow-hidden border-light-subtle">
+          <div class="w-100" style="max-width: 420px; z-index: 20;">
+            <div class="bg-white border rounded-3 shadow-sm overflow-hidden border-light-subtle">
+              
               <!-- Sign In Form Container -->
-              <div class="p-4 p-md-5" id="form-container-login">
+              <div class="p-4 p-md-4.5" id="form-container-login">
                 <div class="d-lg-none d-flex align-items-center gap-2 mb-4">
                   <div class="bg-primary rounded d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                     <span class="fw-bold text-white small headline-font">AF</span>
                   </div>
-                  <h2 class="h5 text-primary m-0 headline-font">AssetFlow</h2>
+                  <h2 class="h5 text-primary m-0 headline-font fw-bold">AssetFlow</h2>
                 </div>
 
-                <div class="mb-4">
-                  <h1 class="h3 text-dark mb-1 headline-font">Sign in to Console</h1>
+                <div class="mb-4 text-center text-lg-start">
+                  <h1 class="h3 text-dark mb-1 fw-bold headline-font">Welcome Back</h1>
                   <p class="text-muted small">Enter your workspace credentials to continue.</p>
                 </div>
 
@@ -65,68 +106,59 @@ export const LoginPage = {
 
                 <form id="form-login" class="needs-validation" novalidate>
                   <div class="mb-3">
-                    <label class="form-label text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.05em;" for="login-email">Work Email</label>
-                    <input type="email" class="form-control py-2 border-light-subtle" id="login-email" placeholder="name@company.com" required>
+                    <label class="form-label text-uppercase text-muted fw-bold mb-1.5" style="font-size: 10px; letter-spacing: 0.05em;" for="login-email">Work Email</label>
+                    <input type="email" class="form-control py-2.5 border-light-subtle rounded-2" id="login-email" placeholder="name@company.com" required>
                   </div>
+                  
                   <div class="mb-4">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                      <label class="form-label text-uppercase text-muted fw-bold mb-0" style="font-size: 11px; letter-spacing: 0.05em;" for="login-password">Password</label>
-                      <a class="small text-decoration-none text-primary fw-semibold" style="font-size: 12px;" href="#" id="link-forgot-pass">Forgot?</a>
+                    <div class="d-flex justify-content-between align-items-center mb-1.5">
+                      <label class="form-label text-uppercase text-muted fw-bold mb-0" style="font-size: 10px; letter-spacing: 0.05em;" for="login-password">Password</label>
+                      <a class="small text-decoration-none text-primary fw-bold" style="font-size: 11.5px;" href="#" id="link-forgot-pass">Forgot Password?</a>
                     </div>
-                    <input type="password" class="form-control py-2 border-light-subtle" id="login-password" placeholder="••••••••" required>
-                  </div>
-                  <button class="btn btn-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2" type="submit" id="btn-login-submit">
-                    <span>Sign In</span>
-                  </button>
-
-                  <div class="relative d-flex align-items-center my-3 py-1">
-                    <div class="flex-grow-1 border-top border-light-subtle"></div>
-                    <span class="mx-3 text-uppercase text-muted small" style="font-size: 9px; letter-spacing: 0.1em;">or use</span>
-                    <div class="flex-grow-1 border-top border-light-subtle"></div>
+                    <div class="position-relative">
+                      <input type="password" class="form-control py-2.5 border-light-subtle rounded-2 pe-5" id="login-password" placeholder="••••••••" required>
+                      <button type="button" class="btn position-absolute top-50 end-0 translate-middle-y me-1 border-0 bg-transparent text-muted p-1" id="btn-toggle-password-visibility" tabindex="-1">
+                        <span class="material-symbols-outlined fs-5 align-middle" id="pwd-toggle-icon">visibility</span>
+                      </button>
+                    </div>
                   </div>
 
-                  <button class="btn btn-outline-secondary border-light-subtle w-100 py-2 d-flex align-items-center justify-content-center gap-2 text-dark hover-light bg-white" type="button" id="btn-sso-login">
-                    <svg class="me-1" style="width: 18px; height: 18px;" viewBox="0 0 24 24">
-                      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"></path>
-                      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"></path>
-                      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z" fill="#FBBC05"></path>
-                      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 12-4.53z" fill="#EA4335"></path>
-                    </svg>
-                    <span>Single Sign-On (SSO)</span>
+                  <button class="btn btn-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-2" type="submit" id="btn-login-submit">
+                    <span id="btn-login-text">Sign In</span>
                   </button>
                 </form>
 
-                <div class="pt-4 mt-4 border-top border-light-subtle d-flex align-items-center justify-content-between">
-                  <span class="text-muted small">New employee?</span>
-                  <button class="btn btn-link text-primary fw-semibold p-0 text-decoration-none small" id="btn-toggle-signup">Request Account</button>
+                <div class="pt-3.5 mt-4 border-top border-light-subtle d-flex align-items-center justify-content-between mb-3" style="font-size: 13.5px;">
+                  <span class="text-muted">New employee?</span>
+                  <button class="btn btn-link text-primary fw-bold p-0 text-decoration-none" id="btn-toggle-signup">Request Account</button>
                 </div>
               </div>
 
               <!-- Sign Up Form Container (Hidden initially) -->
-              <div class="p-4 p-md-5 d-none" id="form-container-signup">
-                <div class="mb-4">
-                  <h1 class="h3 text-dark mb-1 headline-font">Request Console Access</h1>
-                  <p class="text-muted small">Fill in details to register as an Employee.</p>
+              <div class="p-4 p-md-4.5 d-none" id="form-container-signup">
+                <div class="mb-4 text-center text-lg-start">
+                  <h1 class="h3 text-dark mb-1 fw-bold headline-font">Request Access</h1>
+                  <p class="text-muted small">Register your workspace profile as an Employee.</p>
                 </div>
 
                 <div id="signup-alert-placeholder"></div>
 
                 <form id="form-signup" class="needs-validation" novalidate>
                   <div class="mb-3">
-                    <label class="form-label text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.05em;" for="signup-name">Full Name</label>
-                    <input type="text" class="form-control py-2 border-light-subtle" id="signup-name" placeholder="John Doe" required>
+                    <label class="form-label text-uppercase text-muted fw-bold mb-1.5" style="font-size: 10px; letter-spacing: 0.05em;" for="signup-name">Full Name</label>
+                    <input type="text" class="form-control py-2.5 border-light-subtle rounded-2" id="signup-name" placeholder="John Doe" required>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.05em;" for="signup-email">Work Email</label>
-                    <input type="email" class="form-control py-2 border-light-subtle" id="signup-email" placeholder="name@company.com" required>
+                    <label class="form-label text-uppercase text-muted fw-bold mb-1.5" style="font-size: 10px; letter-spacing: 0.05em;" for="signup-email">Work Email</label>
+                    <input type="email" class="form-control py-2.5 border-light-subtle rounded-2" id="signup-email" placeholder="name@company.com" required>
                   </div>
                   <div class="mb-3">
-                    <label class="form-label text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.05em;" for="signup-password">Password</label>
-                    <input type="password" class="form-control py-2 border-light-subtle" id="signup-password" placeholder="Min. 6 characters" required>
+                    <label class="form-label text-uppercase text-muted fw-bold mb-1.5" style="font-size: 10px; letter-spacing: 0.05em;" for="signup-password">Password</label>
+                    <input type="password" class="form-control py-2.5 border-light-subtle rounded-2" id="signup-password" placeholder="Min. 6 characters" required>
                   </div>
                   <div class="mb-4">
-                    <label class="form-label text-uppercase text-muted fw-bold" style="font-size: 11px; letter-spacing: 0.05em;" for="signup-department">Department</label>
-                    <select class="form-select py-2 border-light-subtle" id="signup-department" required>
+                    <label class="form-label text-uppercase text-muted fw-bold mb-1.5" style="font-size: 10px; letter-spacing: 0.05em;" for="signup-department">Department</label>
+                    <select class="form-select py-2.5 border-light-subtle rounded-2" id="signup-department" required>
                       <option value="" disabled selected>Select Department</option>
                       <option value="1">Administration</option>
                       <option value="2">Information Technology</option>
@@ -134,40 +166,34 @@ export const LoginPage = {
                       <option value="4">Human Resources</option>
                     </select>
                   </div>
-                  <button class="btn btn-secondary bg-secondary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2" type="submit" id="btn-signup-submit">
-                    <span>Submit Request</span>
+                  <button class="btn btn-primary w-100 py-2.5 fw-semibold d-flex align-items-center justify-content-center gap-2 rounded-2" type="submit" id="btn-signup-submit">
+                    <span id="btn-signup-text">Submit Request</span>
                   </button>
                 </form>
 
-                <div class="pt-4 mt-4 border-top border-light-subtle d-flex align-items-center justify-content-between">
-                  <span class="text-muted small">Already have an account?</span>
-                  <button class="btn btn-link text-primary fw-semibold p-0 text-decoration-none small" id="btn-toggle-login">Sign In</button>
+                <div class="pt-3.5 mt-4 border-top border-light-subtle d-flex align-items-center justify-content-between" style="font-size: 13.5px;">
+                  <span class="text-muted">Already have an account?</span>
+                  <button class="btn btn-link text-primary fw-bold p-0 text-decoration-none" id="btn-toggle-login">Sign In</button>
                 </div>
               </div>
 
-              <!-- System Status Footer -->
-              <div class="px-4 py-3 bg-light border-top d-flex justify-content-between align-items-center text-muted fw-semibold uppercase" style="font-size: 10px; letter-spacing: 0.08em;">
-                <div class="d-flex align-items-center gap-1.5">
-                  <span class="d-inline-block rounded-circle bg-success" style="width: 6px; height: 6px;"></span>
-                  <span>Systems Operational</span>
-                </div>
-                <span class="text-muted-50">v4.2.0-stable</span>
+            </div>
+
+            <!-- Redesigned Footer -->
+            <div class="mt-4 text-center opacity-75">
+              <p class="small text-muted mb-1">&copy; 2026 AssetFlow Enterprise ERP.</p>
+              <div class="d-flex gap-2 justify-content-center text-muted" style="font-size: 11px;">
+                <span>ISO 27001 Secured</span> &middot;
+                <span>Tier-IV Infrastructure</span>
               </div>
             </div>
 
-            <!-- Global Footer -->
-            <div class="mt-4 text-center text-lg-start opacity-50">
-              <p class="small mb-1">&copy; 2026 AssetFlow ERP. All rights reserved.</p>
-              <div class="d-flex gap-3 justify-content-center justify-content-lg-start" style="font-size: 11px;">
-                <a href="#" class="text-decoration-none text-dark hover-primary">Privacy</a>
-                <a href="#" class="text-decoration-none text-dark hover-primary">Terms</a>
-                <a href="#" class="text-decoration-none text-dark hover-primary">Security</a>
-              </div>
-            </div>
           </div>
         </main>
       </div>
     `;
+
+    return contentHTML;
   },
 
   onMount(router) {
@@ -191,16 +217,58 @@ export const LoginPage = {
       });
     }
 
+    // Password Visibility Toggle
+    const btnTogglePassword = document.getElementById('btn-toggle-password-visibility');
+    const passwordInput = document.getElementById('login-password');
+    const toggleIcon = document.getElementById('pwd-toggle-icon');
+
+    if (btnTogglePassword && passwordInput && toggleIcon) {
+      btnTogglePassword.addEventListener('click', () => {
+        const type = passwordInput.getAttribute('type') === 'password' ? 'text' : 'password';
+        passwordInput.setAttribute('type', type);
+        toggleIcon.innerText = type === 'password' ? 'visibility' : 'visibility_off';
+      });
+    }
+
+    // Autofill Credentials Action
+    document.querySelectorAll('.btn-autofill').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-email');
+        const password = btn.getAttribute('data-password');
+        
+        const emailInput = document.getElementById('login-email');
+        const passInput = document.getElementById('login-password');
+
+        if (emailInput && passInput) {
+          emailInput.value = email;
+          passInput.value = password;
+          
+          // Trigger CSS focus visual check
+          emailInput.dispatchEvent(new Event('input', { bubbles: true }));
+          passInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      });
+    });
+
     // Bind Forms
     const formLogin = document.getElementById('form-login');
     if (formLogin) {
       formLogin.addEventListener('submit', async (e) => {
         e.preventDefault();
         const alertPlaceholder = document.getElementById('login-alert-placeholder');
+        const submitBtn = document.getElementById('btn-login-submit');
+        const submitText = document.getElementById('btn-login-text');
+        
         alertPlaceholder.innerHTML = ''; // reset alert
 
         const email = document.getElementById('login-email').value;
         const password = document.getElementById('login-password').value;
+
+        // Set Loading state
+        if (submitBtn && submitText) {
+          submitBtn.disabled = true;
+          submitText.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Signing in...`;
+        }
 
         try {
           const res = await fetch('/api/auth/login', {
@@ -221,6 +289,11 @@ export const LoginPage = {
                 <span class="small">${data.error ? data.error.message : 'Invalid credentials'}</span>
               </div>
             `;
+            // Reset Loading state
+            if (submitBtn && submitText) {
+              submitBtn.disabled = false;
+              submitText.innerText = 'Sign In';
+            }
           }
         } catch (err) {
           console.error('Login error', err);
@@ -230,6 +303,11 @@ export const LoginPage = {
               <span class="small">Connection failure. Please try again.</span>
             </div>
           `;
+          // Reset Loading state
+          if (submitBtn && submitText) {
+            submitBtn.disabled = false;
+            submitText.innerText = 'Sign In';
+          }
         }
       });
     }
@@ -239,12 +317,21 @@ export const LoginPage = {
       formSignup.addEventListener('submit', async (e) => {
         e.preventDefault();
         const alertPlaceholder = document.getElementById('signup-alert-placeholder');
+        const submitBtn = document.getElementById('btn-signup-submit');
+        const submitText = document.getElementById('btn-signup-text');
+        
         alertPlaceholder.innerHTML = '';
 
         const name = document.getElementById('signup-name').value;
         const email = document.getElementById('signup-email').value;
         const password = document.getElementById('signup-password').value;
         const departmentId = document.getElementById('signup-department').value;
+
+        // Set Loading state
+        if (submitBtn && submitText) {
+          submitBtn.disabled = true;
+          submitText.innerHTML = `<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Submitting...`;
+        }
 
         try {
           const res = await fetch('/api/auth/signup', {
@@ -273,6 +360,11 @@ export const LoginPage = {
                 <span class="small">${errorText}</span>
               </div>
             `;
+            // Reset Loading state
+            if (submitBtn && submitText) {
+              submitBtn.disabled = false;
+              submitText.innerText = 'Submit Request';
+            }
           }
         } catch (err) {
           console.error('Signup error', err);
@@ -282,6 +374,11 @@ export const LoginPage = {
               <span class="small">Connection failure. Please try again.</span>
             </div>
           `;
+          // Reset Loading state
+          if (submitBtn && submitText) {
+            submitBtn.disabled = false;
+            submitText.innerText = 'Submit Request';
+          }
         }
       });
     }
@@ -292,14 +389,6 @@ export const LoginPage = {
       linkForgotPass.addEventListener('click', (e) => {
         e.preventDefault();
         alert('Reset password service stub: Please contact your IT Department head.');
-      });
-    }
-
-    // Stub SSO Login clicks
-    const btnSsoLogin = document.getElementById('btn-sso-login');
-    if (btnSsoLogin) {
-      btnSsoLogin.addEventListener('click', () => {
-        alert('SSO login stub: SAML credentials federations not configured.');
       });
     }
   }

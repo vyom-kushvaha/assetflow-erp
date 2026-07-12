@@ -471,7 +471,7 @@ export const AssetsPage = {
 
       // Open Modal
       const modalEl = document.getElementById('modal-asset-details');
-      const modalInstance = new bootstrap.Modal(modalEl);
+      const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
       modalInstance.show();
 
       try {
@@ -689,7 +689,7 @@ export const AssetsPage = {
         document.getElementById('edit-asset-status').value = asset.status;
         document.getElementById('edit-asset-bookable').checked = asset.is_bookable === 1;
 
-        const editModal = new bootstrap.Modal(document.getElementById('modal-edit-asset'));
+        const editModal = bootstrap.Modal.getOrCreateInstance(document.getElementById('modal-edit-asset'));
         editModal.show();
       } catch (err) {
         console.error(err);
