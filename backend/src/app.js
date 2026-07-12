@@ -4,6 +4,8 @@ const path = require('path');
 const session = require('express-session');
 const authRoutes = require('./routes/authRoutes');
 const orgRoutes = require('./routes/orgRoutes');
+const assetRoutes = require('./routes/assetRoutes');
+const allocationRoutes = require('./routes/allocationRoutes');
 
 const app = express();
 
@@ -45,6 +47,8 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 // Register Auth Routes
 app.use('/api', authRoutes);
 app.use('/api', orgRoutes);
+app.use('/api', assetRoutes);
+app.use('/api', allocationRoutes);
 
 // Health Check API Endpoint
 app.get('/api/health', (req, res) => {

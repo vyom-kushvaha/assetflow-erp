@@ -54,10 +54,17 @@ export class Router {
     // Render component view template inside parent container
     if (this.container) {
       try {
+        // Clean up leftover modals and backdrops in body to prevent backdrop lockouts
+        const leftoverModals = document.querySelectorAll('body > .modal, body > .modal-backdrop');
+        leftoverModals.forEach(el => el.remove());
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+
         const viewContent = await matchedRoute.render();
         this.container.innerHTML = viewContent;
         if (matchedRoute.onMount) {
-          matchedRoute.onMount();
+          matchedRoute.onMount(this);
         }
       } catch (error) {
         console.error('Route render failure:', error);
