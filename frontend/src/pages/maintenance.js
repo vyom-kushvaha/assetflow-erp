@@ -1,12 +1,8 @@
 import { renderLayout, bindLayoutEvents } from '../layouts/layout.js';
-import { getState, saveState, logActivity } from '../utils/state.js';
+import * as bootstrap from 'bootstrap';
 
 export const MaintenancePage = {
   render() {
-    const state = getState();
-    const assets = state.assets;
-    const employees = state.employees;
-
     const contentHTML = `
       <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
@@ -32,11 +28,14 @@ export const MaintenancePage = {
                 <th>Priority</th>
                 <th>Reported Fault</th>
                 <th>Status</th>
+                <th>Technician</th>
                 <th>Actions</th>
               </tr>
             </thead>
             <tbody style="font-size: 14px;" id="maintenance-table-body">
-              <!-- Dynamically populated -->
+              <tr>
+                <td colspan="8" class="text-center py-4 text-muted">Loading active maintenance logs...</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -56,15 +55,7 @@ export const MaintenancePage = {
                   <label class="form-label fw-semibold" for="ticket-asset">Select Asset *</label>
                   <select class="form-select" id="ticket-asset" required>
                     <option value="" disabled selected>Select Asset...</option>
-                    ${assets.map(a => `<option value="${a.id}">${a.tag} - ${a.name} [Cond: ${a.condition}]</option>`).join('')}
-                  </select>
-                </div>
-
-                <div class="mb-3">
-                  <label class="form-label fw-semibold" for="ticket-user">Reported By *</label>
-                  <select class="form-select" id="ticket-user" required>
-                    <option value="" disabled selected>Select Employee Profile</option>
-                    ${employees.map(e => `<option value="${e.id}">${e.name} (${e.email})</option>`).join('')}
+                    <!-- Populated dynamically -->
                   </select>
                 </div>
 
@@ -74,6 +65,7 @@ export const MaintenancePage = {
                     <option value="LOW">LOW - Non critical wear</option>
                     <option value="MEDIUM" selected>MEDIUM - Impeded operations</option>
                     <option value="HIGH">HIGH - Total failure</option>
+                    <option value="CRITICAL">CRITICAL - Business block</option>
                   </select>
                 </div>
 
@@ -99,135 +91,228 @@ export const MaintenancePage = {
   onMount(router) {
     bindLayoutEvents(router);
 
-    function renderMaintenanceList() {
-      const state = getState();
-      const logs = state.maintenance;
-      const assets = state.assets;
+    // Move modals to body to prevent stacking context backdrop overlay bugs
+    const pageModals = document.querySelectorAll('.modal');
+    pageModals.forEach(modal => {
+      document.body.appendChild(modal);
+    });
 
+    function dismissModal(modalId) {
+      const modalEl = document.getElementById(modalId);
+      if (modalEl) {
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    let assets = [];
+    let requests = [];
+
+    async function loadData() {
+      try {
+        // Fetch Assets
+        const resAssets = await fetch('/api/assets');
+        if (resAssets.ok) {
+          const data = await resAssets.json();
+          assets = data.assets || [];
+        }
+
+        // Fetch Maintenance Requests
+        const resReq = await fetch('/api/maintenance');
+        if (resReq.ok) {
+          const data = await resReq.json();
+          requests = data.requests || [];
+        }
+
+        populateSelectors();
+        renderMaintenanceList();
+      } catch (err) {
+        console.error('Failed to load maintenance data', err);
+      }
+    }
+
+    function populateSelectors() {
+      // Allow raising tickets on any registered asset
+      const ticketAssetSelect = document.getElementById('ticket-asset');
+      if (ticketAssetSelect) {
+        ticketAssetSelect.innerHTML = '<option value="" disabled selected>Select Asset...</option>' +
+          assets.map(a => `<option value="${a.id}">${a.asset_tag} - ${a.name} [Cond: ${a.condition}]</option>`).join('');
+      }
+    }
+
+    function renderMaintenanceList() {
       const tbody = document.getElementById('maintenance-table-body');
-      if (logs.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="text-center py-4 text-muted">No maintenance logs found.</td>
-          </tr>
-        `;
+      if (!tbody) return;
+
+      if (requests.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-muted">No maintenance logs found.</td></tr>`;
         return;
       }
 
-      tbody.innerHTML = logs.map(l => {
-        const asset = assets.find(a => a.id === l.assetId);
-        const assetTag = asset ? asset.tag : 'N/A';
-        const assetName = asset ? asset.name : 'Unknown';
+      let user = { role: 'EMPLOYEE' };
+      try {
+        const savedUser = localStorage.getItem('user');
+        if (savedUser) user = JSON.parse(savedUser);
+      } catch (e) {}
 
+      const canManage = user.role === 'ADMIN' || user.role === 'ASSET_MANAGER';
+
+      tbody.innerHTML = requests.map(l => {
         let priorityBadge = 'text-bg-light';
-        if (l.priority === 'HIGH') priorityBadge = 'bg-danger-subtle text-danger';
+        if (l.priority === 'HIGH' || l.priority === 'CRITICAL') priorityBadge = 'bg-danger-subtle text-danger';
         else if (l.priority === 'MEDIUM') priorityBadge = 'bg-warning-subtle text-warning-emphasis';
 
         let statusBadge = 'bg-secondary';
         if (l.status === 'PENDING') statusBadge = 'bg-info text-dark';
         else if (l.status === 'APPROVED') statusBadge = 'bg-primary text-white';
-        else if (l.status === 'COMPLETED') statusBadge = 'bg-success text-white';
+        else if (l.status === 'TECHNICIAN_ASSIGNED') statusBadge = 'bg-warning text-dark';
+        else if (l.status === 'RESOLVED') statusBadge = 'bg-success text-white';
         else if (l.status === 'REJECTED') statusBadge = 'bg-danger text-white';
 
         let actionHtml = '-';
-        if (l.status === 'PENDING') {
-          actionHtml = `
-            <div class="d-flex gap-1">
-              <button class="btn btn-xs btn-primary px-2 py-1 fs-7 btn-approve-ticket" data-id="${l.id}" data-asset-id="${l.assetId}">Approve</button>
-              <button class="btn btn-xs btn-outline-danger px-2 py-1 fs-7 btn-reject-ticket" data-id="${l.id}">Reject</button>
-            </div>
-          `;
-        } else if (l.status === 'APPROVED') {
-          actionHtml = `
-            <button class="btn btn-xs btn-success px-2 py-1 fs-7 btn-complete-ticket" data-id="${l.id}" data-asset-id="${l.assetId}">Mark Completed</button>
-          `;
+
+        if (canManage) {
+          if (l.status === 'PENDING') {
+            actionHtml = `
+              <div class="d-flex gap-1">
+                <button class="btn btn-xs btn-primary px-2 py-1 fs-7 btn-approve-ticket" data-id="${l.id}">Approve</button>
+                <button class="btn btn-xs btn-outline-danger px-2 py-1 fs-7 btn-reject-ticket" data-id="${l.id}">Reject</button>
+              </div>
+            `;
+          } else if (l.status === 'APPROVED') {
+            actionHtml = `
+              <button class="btn btn-xs btn-warning px-2 py-1 fs-7 btn-assign-tech" data-id="${l.id}">Assign Technician</button>
+            `;
+          } else if (l.status === 'TECHNICIAN_ASSIGNED') {
+            actionHtml = `
+              <button class="btn btn-xs btn-success px-2 py-1 fs-7 btn-resolve-ticket" data-id="${l.id}">Resolve Ticket</button>
+            `;
+          }
+        } else {
+          actionHtml = `<span class="text-muted small">Access restricted</span>`;
         }
 
         return `
           <tr class="fade-in-el">
             <td>#TCK-${l.id}</td>
-            <td class="fw-semibold text-primary">${assetTag}</td>
-            <td class="fw-bold text-dark">${assetName}</td>
+            <td class="fw-semibold text-primary">${l.asset_tag}</td>
+            <td class="fw-bold text-dark">${l.asset_name}</td>
             <td><span class="badge ${priorityBadge} px-2.5 py-1">${l.priority}</span></td>
-            <td>${l.issue}</td>
+            <td>${l.issue_description}</td>
             <td><span class="badge ${statusBadge} px-2.5 py-1.5 rounded">${l.status}</span></td>
+            <td><strong>${l.technician_name || '-'}</strong></td>
             <td>${actionHtml}</td>
           </tr>
         `;
       }).join('');
 
-      // Bind actions
+      // Bind Action handlers
+      // 1. Approve
       document.querySelectorAll('.btn-approve-ticket').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const ticketId = parseInt(e.target.getAttribute('data-id'), 10);
-          const assetId = parseInt(e.target.getAttribute('data-asset-id'), 10);
-
-          if (confirm('Approve maintenance schedule? This will set the asset status to UNDER_MAINTENANCE.')) {
-            const state = getState();
-            
-            // Set ticket status
-            const ticket = state.maintenance.find(m => m.id === ticketId);
-            if (ticket) {
-              ticket.status = 'APPROVED';
-              ticket.approvedBy = 1; // Default Admin
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          if (confirm('Approve maintenance ticket? This sets the asset status to UNDER_MAINTENANCE.')) {
+            try {
+              const res = await fetch(`/api/maintenance/${id}/approve`, { method: 'POST' });
+              if (res.ok) {
+                alert('Request approved successfully!');
+                loadData();
+              } else {
+                const data = await res.json();
+                alert(data.error ? data.error.message : 'Approval failed');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Connection failed');
             }
-
-            // Set asset status to UNDER_MAINTENANCE
-            const asset = state.assets.find(a => a.id === assetId);
-            if (asset) {
-              asset.status = 'UNDER_MAINTENANCE';
-            }
-
-            saveState(state);
-            logActivity(`Approved maintenance ticket #TCK-${ticketId} for asset: ${asset ? asset.tag : 'ID ' + assetId}`, 'MAINTENANCE');
-            router.navigateTo('/maintenance');
           }
         });
       });
 
+      // 2. Reject
       document.querySelectorAll('.btn-reject-ticket').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const ticketId = parseInt(e.target.getAttribute('data-id'), 10);
-          if (confirm('Reject this repair ticket?')) {
-            const state = getState();
-            const ticket = state.maintenance.find(m => m.id === ticketId);
-            if (ticket) {
-              ticket.status = 'REJECTED';
-              saveState(state);
-              logActivity(`Rejected maintenance ticket #TCK-${ticketId}`, 'MAINTENANCE');
-              router.navigateTo('/maintenance');
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const reason = prompt('Enter rejection reason:');
+          if (reason !== null) {
+            try {
+              const res = await fetch(`/api/maintenance/${id}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+              });
+              if (res.ok) {
+                alert('Request rejected.');
+                loadData();
+              } else {
+                const data = await res.json();
+                alert(data.error ? data.error.message : 'Rejection failed');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Connection failed');
             }
           }
         });
       });
 
-      document.querySelectorAll('.btn-complete-ticket').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const ticketId = parseInt(e.target.getAttribute('data-id'), 10);
-          const assetId = parseInt(e.target.getAttribute('data-asset-id'), 10);
-
-          const costStr = prompt('Enter repair cost logged (INR):', '500');
-          if (costStr !== null) {
-            const cost = parseFloat(costStr) || 0;
-            const state = getState();
-            
-            // Complete ticket
-            const ticket = state.maintenance.find(m => m.id === ticketId);
-            if (ticket) {
-              ticket.status = 'COMPLETED';
-              ticket.cost = cost;
+      // 3. Assign Tech
+      document.querySelectorAll('.btn-assign-tech').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const technicianName = prompt('Enter technician name assigned to repairs:');
+          if (technicianName) {
+            try {
+              const res = await fetch(`/api/maintenance/${id}/assign`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ technicianName })
+              });
+              if (res.ok) {
+                alert('Technician assigned successfully!');
+                loadData();
+              } else {
+                const data = await res.json();
+                alert(data.error ? data.error.message : 'Assignment failed');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Connection failed');
             }
+          }
+        });
+      });
 
-            // Revert asset status back to AVAILABLE
-            const asset = state.assets.find(a => a.id === assetId);
-            if (asset) {
-              asset.status = 'AVAILABLE';
+      // 4. Resolve Ticket
+      document.querySelectorAll('.btn-resolve-ticket').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const id = btn.getAttribute('data-id');
+          const resolutionNotes = prompt('Enter repair closeout resolution notes:');
+          if (resolutionNotes) {
+            try {
+              const res = await fetch(`/api/maintenance/${id}/resolve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ resolutionNotes })
+              });
+              if (res.ok) {
+                alert('Ticket resolved successfully! Asset status set back to Available.');
+                loadData();
+              } else {
+                const data = await res.json();
+                alert(data.error ? data.error.message : 'Resolution failed');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Connection failed');
             }
-
-            saveState(state);
-            logActivity(`Completed repairs on asset ${asset ? asset.tag : 'ID ' + assetId} (Cost: INR ${cost})`, 'MAINTENANCE');
-            router.navigateTo('/maintenance');
-            alert('Repairs registered and asset set back to Available status!');
           }
         });
       });
@@ -236,47 +321,46 @@ export const MaintenancePage = {
     // Handle Form Submit
     const formRaiseTicket = document.getElementById('form-raise-ticket');
     if (formRaiseTicket) {
-      formRaiseTicket.addEventListener('submit', (e) => {
+      formRaiseTicket.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const assetId = parseInt(document.getElementById('ticket-asset').value, 10);
-        const raisedBy = parseInt(document.getElementById('ticket-user').value, 10);
+        const assetId = document.getElementById('ticket-asset').value;
         const priority = document.getElementById('ticket-priority').value;
-        const issue = document.getElementById('ticket-issue').value.trim();
+        const issueDescription = document.getElementById('ticket-issue').value.trim();
 
-        if (isNaN(assetId) || isNaN(raisedBy) || !priority || !issue) {
+        if (!assetId || !priority || !issueDescription) {
           alert('Please fill out all required fields.');
           return;
         }
 
-        const state = getState();
-        const newTicket = {
-          id: state.maintenance.length + 1,
-          assetId,
-          raisedBy,
-          issue,
-          priority,
-          status: 'PENDING',
-          approvedBy: null
-        };
+        try {
+          const res = await fetch('/api/maintenance', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              priority,
+              issueDescription
+            })
+          });
 
-        state.maintenance.push(newTicket);
-        saveState(state);
-        logActivity(`Logged repair ticket for asset ID: ${assetId} (${priority})`, 'MAINTENANCE');
+          const data = await res.json();
+          if (res.ok) {
+            alert('Repair ticket raised successfully!');
+            formRaiseTicket.reset();
 
-        // Reset and close
-        formRaiseTicket.reset();
-        const modalEl = document.getElementById('modal-raise-ticket');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) {
-          modalInstance.hide();
+            dismissModal('modal-raise-ticket');
+            loadData();
+          } else {
+            alert(data.error ? data.error.message : 'Failed to raise ticket.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Connection failed');
         }
-
-        router.navigateTo('/maintenance');
-        alert('Repair ticket raised successfully!');
       });
     }
 
-    renderMaintenanceList();
+    loadData();
   }
 };

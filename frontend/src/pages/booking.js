@@ -1,12 +1,8 @@
 import { renderLayout, bindLayoutEvents } from '../layouts/layout.js';
-import { getState, saveState, logActivity } from '../utils/state.js';
+import * as bootstrap from 'bootstrap';
 
 export const BookingPage = {
   render() {
-    const state = getState();
-    const bookableAssets = state.assets.filter(a => a.bookable || a.is_bookable === 1);
-    const employees = state.employees;
-
     const contentHTML = `
       <div class="d-flex justify-content-between align-items-end mb-4">
         <div>
@@ -39,7 +35,9 @@ export const BookingPage = {
                   </tr>
                 </thead>
                 <tbody style="font-size: 14px;" id="bookings-table-body">
-                  <!-- Dynamically populated -->
+                  <tr>
+                    <td colspan="7" class="text-center py-4 text-muted">Loading reservations directory...</td>
+                  </tr>
                 </tbody>
               </table>
             </div>
@@ -50,17 +48,8 @@ export const BookingPage = {
         <div class="col-xl-4">
           <div class="card card-shadow border-light-subtle rounded-3 p-4 bg-white h-100">
             <h4 class="h5 fw-bold mb-3 text-dark">Bookable Resources</h4>
-            <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;">
-              ${bookableAssets.map(a => `
-                <div class="border rounded p-3 d-flex align-items-center justify-content-between bg-light bg-opacity-25">
-                  <div>
-                    <span class="fw-semibold text-primary d-block">${a.tag}</span>
-                    <strong class="text-dark d-block text-truncate" style="max-width: 180px;">${a.name}</strong>
-                    <small class="text-muted">${a.location}</small>
-                  </div>
-                  <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill small">Reservable</span>
-                </div>
-              `).join('')}
+            <div class="d-flex flex-column gap-2" style="max-height: 480px; overflow-y: auto;" id="bookable-resources-container">
+              <div class="text-center py-4 text-muted small">Loading bookable assets...</div>
             </div>
           </div>
         </div>
@@ -80,7 +69,7 @@ export const BookingPage = {
                   <label class="form-label fw-semibold" for="book-asset">Select Resource *</label>
                   <select class="form-select" id="book-asset" required>
                     <option value="" disabled selected>Select Resource...</option>
-                    ${bookableAssets.map(a => `<option value="${a.id}">${a.tag} - ${a.name} (${a.location})</option>`).join('')}
+                    <!-- Populated dynamically -->
                   </select>
                 </div>
 
@@ -88,7 +77,7 @@ export const BookingPage = {
                   <label class="form-label fw-semibold" for="book-user">Reserved By *</label>
                   <select class="form-select" id="book-user" required>
                     <option value="" disabled selected>Select Employee Profile</option>
-                    ${employees.map(e => `<option value="${e.id}">${e.name} (${e.email})</option>`).join('')}
+                    <!-- Populated dynamically -->
                   </select>
                 </div>
 
@@ -125,48 +114,133 @@ export const BookingPage = {
   onMount(router) {
     bindLayoutEvents(router);
 
-    function renderBookingsList() {
-      const state = getState();
-      const bookings = state.bookings;
-      const assets = state.assets;
-      const employees = state.employees;
+    // Move modals to body to prevent stacking context backdrop overlay bugs
+    const pageModals = document.querySelectorAll('.modal');
+    pageModals.forEach(modal => {
+      document.body.appendChild(modal);
+    });
 
-      const tbody = document.getElementById('bookings-table-body');
-      if (bookings.length === 0) {
-        tbody.innerHTML = `
-          <tr>
-            <td colspan="7" class="text-center py-4 text-muted">No reservations found.</td>
-          </tr>
-        `;
+    function dismissModal(modalId) {
+      const modalEl = document.getElementById(modalId);
+      if (modalEl) {
+        const modalInstance = bootstrap.Modal.getOrCreateInstance(modalEl);
+        if (modalInstance) {
+          modalInstance.hide();
+        }
+      }
+      const backdrops = document.querySelectorAll('.modal-backdrop');
+      backdrops.forEach(el => el.remove());
+      document.body.classList.remove('modal-open');
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+
+    let assets = [];
+    let employees = [];
+    let bookings = [];
+
+    async function loadData() {
+      try {
+        // Fetch Assets
+        const resAssets = await fetch('/api/assets');
+        if (resAssets.ok) {
+          const data = await resAssets.json();
+          assets = data.assets || [];
+        }
+
+        // Fetch Employees
+        const resEmp = await fetch('/api/org/employees');
+        if (resEmp.ok) {
+          const data = await resEmp.json();
+          employees = data.employees || [];
+        }
+
+        // Fetch Bookings
+        const resBookings = await fetch('/api/bookings');
+        if (resBookings.ok) {
+          const data = await resBookings.json();
+          bookings = data.bookings || [];
+        }
+
+        populateSelectors();
+        renderBookableResources();
+        renderBookingsList();
+      } catch (err) {
+        console.error('Failed to load bookings data', err);
+      }
+    }
+
+    function populateSelectors() {
+      const bookableAssets = assets.filter(a => a.is_bookable === 1);
+
+      // Book Resource selector
+      const bookAssetSelect = document.getElementById('book-asset');
+      if (bookAssetSelect) {
+        bookAssetSelect.innerHTML = '<option value="" disabled selected>Select Resource...</option>' +
+          bookableAssets.map(a => `<option value="${a.id}">${a.asset_tag} - ${a.name} (${a.location || 'N/A'})</option>`).join('');
+      }
+
+      // Employees selector
+      const bookUserSelect = document.getElementById('book-user');
+      if (bookUserSelect) {
+        bookUserSelect.innerHTML = '<option value="" disabled selected>Select Employee Profile</option>' +
+          employees.map(e => `<option value="${e.id}">${e.name} (${e.email})</option>`).join('');
+      }
+    }
+
+    function renderBookableResources() {
+      const container = document.getElementById('bookable-resources-container');
+      if (!container) return;
+
+      const bookableAssets = assets.filter(a => a.is_bookable === 1);
+
+      if (bookableAssets.length === 0) {
+        container.innerHTML = `<div class="text-center py-4 text-muted small">No bookable resources found in the database.</div>`;
         return;
       }
 
-      // Sort by start time descending
-      const sorted = [...bookings].sort((a, b) => new Date(b.start) - new Date(a.start));
+      container.innerHTML = bookableAssets.map(a => `
+        <div class="border rounded p-3 d-flex align-items-center justify-content-between bg-light bg-opacity-25 shadow-xs">
+          <div>
+            <span class="fw-semibold text-primary d-block">${a.asset_tag}</span>
+            <strong class="text-dark d-block text-truncate" style="max-width: 180px;">${a.name}</strong>
+            <small class="text-muted">${a.location || 'Storage Pool'}</small>
+          </div>
+          <span class="badge bg-success-subtle text-success px-2 py-1 rounded-pill small">Reservable</span>
+        </div>
+      `).join('');
+    }
 
-      tbody.innerHTML = sorted.map(b => {
-        const asset = assets.find(a => a.id === b.assetId);
-        const assetTag = asset ? asset.tag : 'N/A';
-        const assetName = asset ? asset.name : 'Unknown';
+    function renderBookingsList() {
+      const tbody = document.getElementById('bookings-table-body');
+      if (!tbody) return;
 
-        const emp = employees.find(e => e.id === b.bookedBy);
-        const empName = emp ? emp.name : 'System User';
+      if (bookings.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-muted">No reservations found.</td></tr>`;
+        return;
+      }
 
+      tbody.innerHTML = bookings.map(b => {
         let statusBadge = 'bg-secondary';
         if (b.status === 'UPCOMING') statusBadge = 'bg-success';
+        else if (b.status === 'ONGOING') statusBadge = 'bg-primary';
         else if (b.status === 'CANCELLED') statusBadge = 'bg-danger';
+        else if (b.status === 'COMPLETED') statusBadge = 'bg-dark';
 
         const isUpcoming = b.status === 'UPCOMING';
 
+        const formattedStart = b.start_time.replace('T', ' ').substring(0, 16);
+        const formattedEnd = b.end_time.replace('T', ' ').substring(0, 16);
+
         return `
           <tr class="fade-in-el">
-            <td class="fw-semibold text-primary py-3">${assetTag}</td>
-            <td class="fw-bold text-dark">${assetName}</td>
-            <td>${empName}</td>
+            <td class="fw-semibold text-primary py-3">${b.asset_tag}</td>
+            <td class="fw-bold text-dark">${b.asset_name}</td>
+            <td>${b.user_name}</td>
             <td>
               <div class="small">
-                <strong>Start:</strong> ${b.start}<br>
-                <strong>End:</strong> ${b.end}
+                <strong>Start:</strong> ${formattedStart}<br>
+                <strong>End:</strong> ${formattedEnd}
               </div>
             </td>
             <td>${b.purpose}</td>
@@ -183,16 +257,21 @@ export const BookingPage = {
 
       // Bind Cancel Buttons
       document.querySelectorAll('.btn-cancel-booking').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          const bookingId = parseInt(e.target.getAttribute('data-id'), 10);
+        btn.addEventListener('click', async () => {
+          const bookingId = btn.getAttribute('data-id');
           if (confirm('Are you sure you want to cancel this reservation?')) {
-            const state = getState();
-            const booking = state.bookings.find(b => b.id === bookingId);
-            if (booking) {
-              booking.status = 'CANCELLED';
-              saveState(state);
-              logActivity(`Cancelled resource booking ID #${bookingId}`, 'BOOKING');
-              router.navigateTo('/booking');
+            try {
+              const res = await fetch(`/api/bookings/${bookingId}/cancel`, { method: 'POST' });
+              if (res.ok) {
+                alert('Reservation cancelled successfully!');
+                loadData();
+              } else {
+                const data = await res.json();
+                alert(data.error ? data.error.message : 'Cancellation failed.');
+              }
+            } catch (err) {
+              console.error(err);
+              alert('Connection failed');
             }
           }
         });
@@ -202,81 +281,62 @@ export const BookingPage = {
     // Handle Form Submit
     const formBooking = document.getElementById('form-create-booking');
     if (formBooking) {
-      formBooking.addEventListener('submit', (e) => {
+      formBooking.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const assetId = parseInt(document.getElementById('book-asset').value, 10);
-        const bookedBy = parseInt(document.getElementById('book-user').value, 10);
-        const startRaw = document.getElementById('book-start').value;
-        const endRaw = document.getElementById('book-end').value;
+        const assetId = document.getElementById('book-asset').value;
+        const bookedBy = document.getElementById('book-user').value;
+        const startTime = document.getElementById('book-start').value;
+        const endTime = document.getElementById('book-end').value;
         const purpose = document.getElementById('book-purpose').value.trim();
 
-        if (isNaN(assetId) || isNaN(bookedBy) || !startRaw || !endRaw || !purpose) {
+        if (!assetId || !bookedBy || !startTime || !endTime || !purpose) {
           alert('Please fill out all required fields.');
           return;
         }
 
-        const start = startRaw.replace('T', ' ') + ':00';
-        const end = endRaw.replace('T', ' ') + ':00';
+        const startDt = new Date(startTime);
+        const endDt = new Date(endTime);
 
-        const startTime = new Date(startRaw);
-        const endTime = new Date(endRaw);
-
-        if (startTime >= endTime) {
+        if (startDt >= endDt) {
           alert('Error: End time must be after the start time.');
           return;
         }
 
-        const state = getState();
+        // Get matching employee's department ID
+        const emp = employees.find(e => e.id === parseInt(bookedBy, 10));
+        const departmentId = emp ? emp.department_id : null;
 
-        // Business Rule: Enforce overlap conflict checks
-        // (existing.start < new.end AND existing.end > new.start)
-        const hasConflict = state.bookings.some(b => {
-          if (b.assetId !== assetId || b.status !== 'UPCOMING') return false;
-          
-          const bStart = new Date(b.start.replace(' ', 'T'));
-          const bEnd = new Date(b.end.replace(' ', 'T'));
+        try {
+          const res = await fetch('/api/bookings', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              assetId,
+              startTime,
+              endTime,
+              purpose,
+              departmentId
+            })
+          });
 
-          return (bStart < endTime && bEnd > startTime);
-        });
+          const data = await res.json();
+          if (res.ok) {
+            alert('Resource reserved successfully!');
+            formBooking.reset();
 
-        if (hasConflict) {
-          alert('Reservation Conflict: This resource is already reserved during the requested time slot.');
-          return;
+            dismissModal('modal-create-booking');
+            loadData();
+          } else {
+            alert(data.error ? data.error.message : 'Reservation failed.');
+          }
+        } catch (err) {
+          console.error(err);
+          alert('Connection failed');
         }
-
-        const emp = state.employees.find(e => e.id === bookedBy);
-        const deptId = emp ? emp.departmentId : 1;
-
-        // Add booking
-        const newBooking = {
-          id: state.bookings.length + 1,
-          assetId,
-          bookedBy,
-          departmentId: deptId,
-          start,
-          end,
-          status: 'UPCOMING',
-          purpose
-        };
-
-        state.bookings.push(newBooking);
-        saveState(state);
-        logActivity(`Created resource booking for asset ID: ${assetId}`, 'BOOKING');
-
-        // Reset and close
-        formBooking.reset();
-        const modalEl = document.getElementById('modal-create-booking');
-        const modalInstance = bootstrap.Modal.getInstance(modalEl);
-        if (modalInstance) {
-          modalInstance.hide();
-        }
-
-        router.navigateTo('/booking');
-        alert('Resource reserved successfully!');
       });
     }
 
-    renderBookingsList();
+    loadData();
   }
 };
