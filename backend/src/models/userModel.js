@@ -78,6 +78,51 @@ const userModel = {
         resolve(!!row);
       });
     });
+  },
+
+  /**
+   * Find all users (employees) with their department names
+   * @returns {Promise<Array>}
+   */
+  findAll() {
+    return new Promise((resolve, reject) => {
+      const db = getDb();
+      const query = `
+        SELECT u.id, u.name, u.email, u.department_id, u.role, u.status, u.created_at, u.updated_at,
+               d.name AS department_name
+        FROM users u
+        LEFT JOIN departments d ON u.department_id = d.id
+        ORDER BY u.id ASC
+      `;
+      db.all(query, [], (err, rows) => {
+        if (err) return reject(err);
+        resolve(rows || []);
+      });
+    });
+  },
+
+  /**
+   * Update a user's role, status, and department
+   * @param {number} id 
+   * @param {object} params
+   * @param {string} params.role
+   * @param {string} params.status
+   * @param {number|null} params.departmentId
+   * @returns {Promise<boolean>}
+   */
+  updateRoleAndStatus(id, { role, status, departmentId }) {
+    return new Promise((resolve, reject) => {
+      const db = getDb();
+      const query = `
+        UPDATE users 
+        SET role = ?, status = ?, department_id = ?, updated_at = datetime('now')
+        WHERE id = ?
+      `;
+      db.run(query, [role, status, departmentId, id], function (err) {
+        if (err) return reject(err);
+        resolve(this.changes > 0);
+      });
+    });
   }
 };
 

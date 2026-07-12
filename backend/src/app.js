@@ -3,6 +3,7 @@ const cors = require('cors');
 const path = require('path');
 const session = require('express-session');
 const authRoutes = require('./routes/authRoutes');
+const orgRoutes = require('./routes/orgRoutes');
 
 const app = express();
 
@@ -43,6 +44,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Register Auth Routes
 app.use('/api', authRoutes);
+app.use('/api', orgRoutes);
 
 // Health Check API Endpoint
 app.get('/api/health', (req, res) => {
